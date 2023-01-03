@@ -1,6 +1,14 @@
-これは[Next.js](https://nextjs.org/)を使用したTypeScript × reactのプロジェクトの開発環境テンプレートです。さああなたも今すぐTypeScript × reactプロジェクトを始めましょう！
+これは[Next.js](https://nextjs.org/)を使用したTypeScript × reactのプロジェクトの開発環境テンプレートです。さああなたも今すぐ快適な新規プロジェクトを始めましょう！
 
-## 初めに
+
+## 何ができるか
+・Github Pagesへの簡単なデプロイ
+・React × Next.js × TypeScriptの簡単な環境構築
+・prettierやlintによるコード整形
+他
+
+
+## 準備
 以下のコマンドを打ち込んでください
 `git clone https://github.com/konjikun/our-ts-env.git [あなたのリポジトリの名前(以下repoと呼ぶ)]`
 
