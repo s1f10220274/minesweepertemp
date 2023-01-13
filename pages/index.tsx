@@ -1,8 +1,10 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
-import React from 'react'
+import React, { useCallback, useEffect } from 'react'
 import styled from 'styled-components'
-import { Box, chakra } from '@chakra-ui/react'
+import { Box, chakra, useInterval } from '@chakra-ui/react'
+import { useState, useReducer, useMemo } from "react"
+import { stringify } from 'querystring'
 
 const Container = styled.div`
   display: flex;
@@ -23,98 +25,275 @@ const Main = styled.main`
   padding: 5rem 0;
 `
 
-const Title = styled.h1`
-  margin: 0;
-  font-size: 4rem;
-  line-height: 1.15;
-  text-align: center;
-  a {
-    color: #0070f3;
-    text-decoration: none;
-  }
-  a:hover,
-  a:focus,
-  a:active {
-    text-decoration: underline;
-  }
+const Game = styled.div`
+  margin: auto;
+  position: relative;
+  padding: 5px;
+  width: 340px;
+  height: 440px;
+  border: 8px #000000;
+  background-color: #8b8b8b;
+`
+const State = styled.div`
+  display: flex;
+  justify-content: center;
+  margin: 5px;
+  position: relative;
+  height: 50px;
+  border: 8px #000000;
+  background-color: #d0d0d0;
 `
 
-const Description = styled.p`
-  font-size: 1.5rem;
-  line-height: 1.5;
-  text-align: center;
-`
-
-const Code = styled.code<{ bgColor: string }>`
-  padding: 0.75rem;
-  font-family: Menlo, 'Monaco, Lucida Console', 'Liberation Mono',
-    'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
-  font-size: 1.1rem;
-  background: ${(props) => props.bgColor};
-  border-radius: 5px;
+const Frame = styled.div`
+  margin: auto;
+  position: relative;
+  width: 320px;
+  height: 360px;
+  border: 8px #000000;
+  background-color: #d0d0d0;
 `
 
 const Grid = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  max-width: 800px;
-  margin-top: 3rem;
-  @media (max-width: 600px) {
-    flex-direction: column;
-    width: 100%;
-  }
+  display: grid;
+  place-items: auto;
+  grid-template-columns: repeat(8, 40px);
+  grid-template-rows: repeat(1, 40px);
 `
 
-const Card = styled.a`
-  width: 45%;
-  padding: 1.5rem;
-  margin: 1rem;
-  color: inherit;
-  text-align: left;
-  text-decoration: none;
+const Griditem = styled.div`
+  padding: 3px;
   border: 1px solid #eaeaea;
-  border-radius: 10px;
-  transition: color 0.15s ease, border-color 0.15s ease;
-  :hover,
-  :focus,
-  :active {
-    color: #0070f3;
-    border-color: #0070f3;
-  }
-  h2 {
-    margin: 0 0 1rem;
-    font-size: 1.5rem;
-  }
-  p {
-    margin: 0;
-    font-size: 1.25rem;
-    line-height: 1.5;
-  }
 `
 
-const Footer = styled.footer`
-  display: flex;
-  align-items: center;
-  justify-content: center;
+const Restart = styled.button`
+  position: relative;
+  margin: auto;
+  height:35px;
+  width:35px;
+  background: url(${process.env.PUBLIC_URL}/minesweeper.png);
+`
+
+const Rock = styled.div`
+  position: absolute;
+  margin: auto;
+  top: 0px;
+  width: 320px;
+  height: 360px;
+  border: 8px #000000;
+  background-color: #2e2e2e;
+  opacity: 0.1;
+`
+
+const Bomb = styled.div`
+  margin: auto;
   width: 100%;
-  height: 100px;
-  border-top: 1px solid #eaeaea;
-  a {
-    display: flex;
-    flex-grow: 1;
-    align-items: center;
-    justify-content: center;
-  }
+  height: 100%;
+  background: url(${process.env.PUBLIC_URL}/minesweeper.png);
+  background-position: -300px;
 `
 
-const Logo = styled.span`
-  height: 1em;
-  margin-left: 0.5rem;
+const Num = styled.div`
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  background: url(${process.env.PUBLIC_URL}/minesweeper.png) no-repeat;
+`
+
+const Block = styled.div`
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+`
+
+const Flag = styled.div`
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  background: url(${process.env.PUBLIC_URL}/minesweeper.png) no-repeat;
+  background-position: -268px;
+  background-color: #ffffff;
+`
+
+const Flagnum = styled.div`
+  position: relative;
+  margin: auto;
+  height:35px;
+  width:60px;
+  font-size: 150%;
+  text-align: center;
+  color: red;
+  background-color: #2a2a2a;
+`
+
+const Timer = styled.div`
+  position: relative;
+  margin: auto;
+  height:35px;
+  width:60px;
+  font-size: 150%;
+  text-align: center;
+  color: red;
+  background-color: #2a2a2a;
 `
 
 const HomePage: NextPage = () => {
+
+  //void -> 0, bomb -> 1
+  const [bomb, setBomb] = useState ([
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0]
+  ]);
+
+  const initialvalue = [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0]
+  ];
+  //まだ -> 0, もう -> 1, flag -> 2
+  const [reveal, setReveal] = useState(initialvalue);
+
+  //nomal -> 0, win -> 1, lose -> 2
+  const [judge, setJudge] = useState(0);
+
+  const around = [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0]
+  ];
+
+  const face = useMemo (() => {
+    if (judge==0) {
+      return -330;
+    }else if (judge==1) {
+      return -360;
+    }else {
+      return -390;
+    }
+  }, [judge]);
+
+  const rock = useMemo(()=>{return judge===0?false:true},[judge]);
+
+  const bombposition = useMemo (() => {return bomb.map((y, ydex) => {
+    return y.map((x, xdex) => x==1?[ydex,xdex]:[]).filter(x => x.length === 2);
+  }).flat()}, [bomb]);
+
+  const numbercalc = useMemo (() => {
+    const newAround: number[][] = JSON.parse(JSON.stringify(around));
+    const direction: number[][] = [[1,1],[1,0],[1,-1],[0,1],[0,-1],[-1,1],[-1,0],[-1,-1]];
+    bombposition.forEach((posi) => {
+      direction.forEach((direc) => {
+        newAround[posi[0]+direc[0]]!=undefined&&newAround[posi[0]+direc[0]][posi[1]+direc[1]]!=undefined&&newAround[posi[0]+direc[0]][posi[1]+direc[1]]++;
+      });
+    });
+    return newAround
+  }, [bomb]);
+
+  const flagnum = useMemo (() => {
+    return bombposition.length - reveal.flatMap(y => y.filter(x => x===2)).length;
+  }, [reveal])
+
+  const [count, setCount] = useState(0)
+
+  useInterval(() => {
+    setCount(prev => prev+1)
+  }, judge == 0?1000:null)
+
+  const resettimer = useMemo(() => {
+    setCount(0);
+    return count;
+  }, [bomb])
+
+  const callwin = useEffect(()=>{
+    if(reveal.flatMap(y => y.filter(x => x===2||x===0)).length - bombposition.length===0){
+      setJudge(1);
+      //凱旋処理
+    }
+  },[reveal])
+
+  const randomset = () => {
+    const initialval: number[][] = initialvalue.slice();
+    const prob: number[] = [0, 0, 0, 0, 1];
+    const newval:number[][] = initialval.map((y, ydex) => {
+      return y.map((x, xdex) => {
+        return x = prob[Math.floor(Math.random() * 4.9)]
+      })
+    })
+    newval[7][6] = 0
+    newval[7][7] = 0
+    newval[8][6] = 0
+    newval[8][7] = 0
+    return newval
+  };
+
+  const unionsearcher = (y:number, x:number, array:number[][]) => {
+    const direction: number[][] = [[1,0],[0,1],[0,-1],[-1,0],[1,1],[-1,1],[1,-1],[-1,-1]];
+
+    array[y][x] = 1
+    //if nowdirec + direc.foreach is (number||undefind):return
+    direction.forEach((direc)=>{
+      if (reveal[y+direc[0]]==undefined||reveal[y+direc[0]][x+direc[1]]==undefined) {
+        return
+      }else if (array[y+direc[0]][x+direc[1]]==1){
+        return
+      }else if (numbercalc[y+direc[0]][x+direc[1]]>=1){
+        array[y+direc[0]][x+direc[1]] = 1
+        return
+      }else{//return unionsercher(nowdirec + alldirec) ->number[][]
+        unionsearcher(y+direc[0],x+direc[1],array)
+      }
+    })
+    return array
+  }
+
+  const revealed = (y:number, x:number) => {
+    const newReveal: number[][] = JSON.parse(JSON.stringify(reveal));
+    if (bomb[y][x] === 1) {
+      setJudge(2);
+      newReveal[y][x]=1;
+      return newReveal;
+      //敗戦処理 
+    }else if(numbercalc[y][x] >= 1){
+      newReveal[y][x]=1;
+      return newReveal;
+    }else{
+      return unionsearcher(y,x,newReveal);
+    }
+  };
+
+  const putflag = (y:number, x:number, flag:boolean) => {
+    const newReveal: number[][] = JSON.parse(JSON.stringify(reveal));
+    if (flag){
+      newReveal[y][x] = 2
+    }else{
+      newReveal[y][x] = 0
+    }
+    return newReveal
+  }
+
+  document.oncontextmenu = function () { 
+   return false;
+  }
+
   return (
     <Container>
       <Head>
@@ -129,58 +308,38 @@ const HomePage: NextPage = () => {
         />
       </Head>
       <Main>
-        <Title>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </Title>
-
-        <Description>
-          Get started by editing <Code bgColor="#fafafa">pages/index.js</Code>
-        </Description>
-
-        <Grid>
-          <Card href="https://nextjs.org/docs">
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </Card>
-
-          <Card href="https://nextjs.org/learn">
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </Card>
-
-          <Card href="https://github.com/vercel/next.js/tree/master/examples">
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </Card>
-
-          <Card href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app">
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </Card>
-        </Grid>
-        <Box>
-          <chakra.h2 color="tomato">This is chakra-ui</chakra.h2>
-        </Box>
+        <Game>
+          <State>
+            <Flagnum>{flagnum}</Flagnum>
+            <Restart onClick={() => {
+                setBomb(randomset);
+                setReveal(initialvalue);
+                setJudge(0);
+              }} style={{backgroundPosition: face}}></Restart>
+            <Timer>{count}</Timer>
+          </State>
+          <Frame>
+              {reveal.map((y, ydex) => (
+                  <Grid key = {ydex}>
+                    {y.map((x, xdex) => (
+                      <Griditem key={xdex}>
+                        {x==0?
+                          (<Block onClick={() => {setReveal((prev)=>revealed(ydex,xdex))}} onContextMenu={()=> setReveal(putflag(ydex,xdex,true))}></Block>):
+                          x==2?
+                            <Flag  onContextMenu={()=> setReveal(putflag(ydex,xdex,false))}></Flag>:
+                            (bomb[ydex][xdex] === 1?
+                              <Bomb></Bomb>:
+                              (numbercalc[ydex][xdex] >= 1 && 
+                                <Num style={{backgroundPosition: -(numbercalc[ydex][xdex]-1)*30}}></Num>))
+                        }
+                      </Griditem>
+                    ))}
+                  </Grid>
+              ))}
+            {rock === true && <Rock></Rock>}
+          </Frame>
+        </Game>
       </Main>
-      <Footer>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <Logo>
-            <img
-              src="vercel.svg"
-              alt="Vercel Logo"
-              width={72}
-              height={16}
-            />
-          </Logo>
-        </a>
-      </Footer>
     </Container>
   )
 }
