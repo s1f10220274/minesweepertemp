@@ -291,11 +291,11 @@ const HomePage: NextPage = () => {
   }
 
   useEffect(() => {
-    const handler = () => {
-      return false;
-    }
-    document.addEventListener('oncontextmenu', handler);
-    return () => document.removeEventListener('oncontextmenu', handler);
+    const handler = (e:Event) => {
+      e.preventDefault();
+    };
+    document.addEventListener('contextmenu', handler);
+    return () => document.removeEventListener('contextmenu', handler);
   }, [])
 
   return (
