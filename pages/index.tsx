@@ -70,7 +70,7 @@ const Restart = styled.button`
   margin: auto;
   height:35px;
   width:35px;
-  background: url(${process.env.PUBLIC_URL}/minesweeper.png);
+  background: url(./minesweeper.png);
 `
 
 const Rock = styled.div`
@@ -88,7 +88,7 @@ const Bomb = styled.div`
   margin: auto;
   width: 100%;
   height: 100%;
-  background: url(${process.env.PUBLIC_URL}/minesweeper.png);
+  background: url(./minesweeper.png);
   background-position: -300px;
 `
 
@@ -96,7 +96,7 @@ const Num = styled.div`
   margin: auto;
   width: 100%;
   height: 100%;
-  background: url(${process.env.PUBLIC_URL}/minesweeper.png) no-repeat;
+  background: url(./minesweeper.png) no-repeat;
 `
 
 const Block = styled.div`
@@ -110,7 +110,7 @@ const Flag = styled.div`
   margin: auto;
   width: 100%;
   height: 100%;
-  background: url(${process.env.PUBLIC_URL}/minesweeper.png) no-repeat;
+  background: url(./minesweeper.png) no-repeat;
   background-position: -268px;
   background-color: #ffffff;
 `
