@@ -163,7 +163,7 @@ const HomePage: NextPage = () => {
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0]
   ];
-  //まだ -> 0, もう -> 1, flag -> 2
+  //まだ -> 0, もう -> 1, flag -> 2, question -> 3
   const [reveal, setReveal] = useState(initialvalue);
 
   //nomal -> 0, win -> 1, lose -> 2
@@ -181,20 +181,12 @@ const HomePage: NextPage = () => {
     [0, 0, 0, 0, 0, 0, 0, 0]
   ];
 
-  const face = useMemo (() => {
-    if (judge==0) {
-      return -330;
-    }else if (judge==1) {
-      return -360;
-    }else {
-      return -390;
-    }
-  }, [judge]);
+  const face = useMemo (() => -330-judge*30, [judge]);
 
-  const rock = useMemo(()=>{return judge===0?false:true},[judge]);
+  const lock = useMemo(() => judge!==0,[judge]);
 
   const bombposition = useMemo (() => {return bomb.map((y, ydex) => {
-    return y.map((x, xdex) => x==1?[ydex,xdex]:[]).filter(x => x.length === 2);
+    return y.map((x, xdex) => x===1?[ydex,xdex]:[]).filter(x => x.length === 2);
   }).flat()}, [bomb]);
 
   const numbercalc = useMemo (() => {
@@ -202,7 +194,7 @@ const HomePage: NextPage = () => {
     const direction: number[][] = [[1,1],[1,0],[1,-1],[0,1],[0,-1],[-1,1],[-1,0],[-1,-1]];
     bombposition.forEach((posi) => {
       direction.forEach((direc) => {
-        newAround[posi[0]+direc[0]]!=undefined&&newAround[posi[0]+direc[0]][posi[1]+direc[1]]!=undefined&&newAround[posi[0]+direc[0]][posi[1]+direc[1]]++;
+        newAround[posi[0]+direc[0]]!==undefined&&newAround[posi[0]+direc[0]][posi[1]+direc[1]]!==undefined&&newAround[posi[0]+direc[0]][posi[1]+direc[1]]++;
       });
     });
     return newAround
@@ -210,7 +202,7 @@ const HomePage: NextPage = () => {
 
   const flagnum = useMemo (() => {
     return bombposition.length - reveal.flatMap(y => y.filter(x => x===2)).length;
-  }, [reveal])
+  }, [reveal,bombposition])
 
   const [count, setCount] = useState(0)
 
@@ -218,22 +210,16 @@ const HomePage: NextPage = () => {
     setCount(prev => prev+1)
   }, judge == 0?1000:null)
 
-  const resettimer = useMemo(() => {
-    setCount(0);
-    return count;
-  }, [bomb])
-
   useEffect(()=>{
-    if(reveal.flatMap(y => y.filter(x => x===2||x===0)).length - bombposition.length===0){
+    if(reveal.flatMap(y => y.filter(x => x===2||x===0)).length === bombposition.length){
       setJudge(1);
       //凱旋処理
     }
-  },[reveal])
+  },[reveal, bombposition])
 
   const randomset = () => {
-    const initialval: number[][] = initialvalue.slice();
     const prob: number[] = [0, 0, 0, 0, 1];
-    const newval:number[][] = initialval.map((y, ydex) => {
+    const newval:number[][] = initialvalue.map((y, ydex) => {
       return y.map((x, xdex) => {
         return x = prob[Math.floor(Math.random() * 4.9)]
       })
@@ -317,6 +303,7 @@ const HomePage: NextPage = () => {
             <Flagnum>{flagnum}</Flagnum>
             <Restart onClick={() => {
                 setBomb(randomset);
+                setCount(0);
                 setReveal(initialvalue);
                 setJudge(0);
               }} style={{backgroundPosition: face}}></Restart>
@@ -340,7 +327,7 @@ const HomePage: NextPage = () => {
                     ))}
                   </Grid>
               ))}
-            {rock === true && <Rock></Rock>}
+            {lock&&<Rock></Rock>}
           </Frame>
         </Game>
       </Main>
