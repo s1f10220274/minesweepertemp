@@ -223,7 +223,7 @@ const HomePage: NextPage = () => {
     return count;
   }, [bomb])
 
-  const callwin = useEffect(()=>{
+  useEffect(()=>{
     if(reveal.flatMap(y => y.filter(x => x===2||x===0)).length - bombposition.length===0){
       setJudge(1);
       //凱旋処理
@@ -290,9 +290,13 @@ const HomePage: NextPage = () => {
     return newReveal
   }
 
-  document.oncontextmenu = function () { 
-   return false;
-  }
+  useEffect(() => {
+    const handler = () => {
+      return false;
+    }
+    document.addEventListener('oncontextmenu', handler);
+    return () => document.removeEventListener('oncontextmenu', handler);
+  }, [])
 
   return (
     <Container>
